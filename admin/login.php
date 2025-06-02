@@ -60,7 +60,6 @@ require_once '../includes/toast.php';
 
   <?php require_once '../includes/bootstrap_script.php' ?>
   <script src="../assets/js/toast.js"></script>
-  <script src="../assets/js/toggle_password_visibility.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const togglePassword = document.querySelector('#togglePassword');
