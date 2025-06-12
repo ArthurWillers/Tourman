@@ -2,15 +2,15 @@
 require_once '../includes/toast.php';
 require_once '../private/config/db_connection.php';
 
-$connection = open_connection();
+$conn = open_connection();
 
 $sports_query = "SELECT id, name FROM sport ORDER BY name";
-$sports_result = mysqli_query($connection, $sports_query);
+$sports_result = mysqli_query($conn, $sports_query);
 
 $locations_query = "SELECT id, name FROM location ORDER BY name";
-$locations_result = mysqli_query($connection, $locations_query);
+$locations_result = mysqli_query($conn, $locations_query);
 
-close_connection($connection);
+close_connection($conn);
 ?>
 
 <!doctype html>
