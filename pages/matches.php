@@ -12,7 +12,15 @@ if ($filter !== 'sport' && $filter !== 'location') {
     redirect_with_toast('dashboard.php', 'Filtro inválido.', 'danger');
 }
 
+$conn = open_connection();
+
+// Obter o nome do esporte ou local para o título
 if ($filter === 'sport') {
+    $name_query = "SELECT name FROM sport WHERE id = ?";
+    $name_result = mysqli_execute_query($conn, $name_query, [$id]);
+    $name_row = mysqli_fetch_assoc($name_result);
+    $filtered_name = $name_row['name'];
+    
     $query = "SELECT m.*, t1.name as team1_name, t2.name as team2_name, s.name as sport_name, l.name as location_name 
               FROM `match` m 
               JOIN team t1 ON m.team1_id = t1.id 
@@ -21,8 +29,13 @@ if ($filter === 'sport') {
               JOIN location l ON m.location_id = l.id 
               WHERE m.sport_id = ? 
               ORDER BY m.sport_order";
-    $title = "Partidas por Esporte";
+    $title = "Partidas por Esporte: " . htmlspecialchars($filtered_name);
 } else {
+    $name_query = "SELECT name FROM location WHERE id = ?";
+    $name_result = mysqli_execute_query($conn, $name_query, [$id]);
+    $name_row = mysqli_fetch_assoc($name_result);
+    $filtered_name = $name_row['name'];
+    
     $query = "SELECT m.*, t1.name as team1_name, t2.name as team2_name, s.name as sport_name, l.name as location_name 
               FROM `match` m 
               JOIN team t1 ON m.team1_id = t1.id 
@@ -31,9 +44,9 @@ if ($filter === 'sport') {
               JOIN location l ON m.location_id = l.id 
               WHERE m.location_id = ? 
               ORDER BY m.location_order";
-    $title = "Partidas por Local";
+    $title = "Partidas por Local: " . htmlspecialchars($filtered_name);
 }
-$conn = open_connection();
+
 $result = mysqli_execute_query($conn, $query, [$id]);
 
 // Buscar a lista de esportes e locais para o menu
@@ -52,7 +65,7 @@ $locations_result = mysqli_query($conn, $locations_query);
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <?php include '../includes/bootstrap_styles.php' ?>
   <link rel="stylesheet" href="../assets/css/bootstrap_custom.css">
-  <title>Tourman - Matches</title>
+  <title>Tourman - <?= $title ?></title>
 </head>
 
 <body class="bg-light">
@@ -123,7 +136,7 @@ $locations_result = mysqli_query($conn, $locations_query);
   </nav>
 
   <div class="container pt-5 mt-5">
-    <h2 class="mb-4"><?= $title ?></h2>
+    <h2 class="mb-4 text-center"><?= $title ?></h2>
     
     <?php if (mysqli_num_rows($result) > 0): ?>
       <div class="row">
