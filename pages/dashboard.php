@@ -1,9 +1,7 @@
 <?php
-require_once '../includes/session_start.php';
 require_once '../includes/toast.php';
 require_once '../private/config/db_connection.php';
 
-// Buscar esportes e localizações para a navbar
 $connection = open_connection();
 
 $sports_query = "SELECT id, name FROM sport ORDER BY name";
