@@ -93,9 +93,213 @@ close_connection($conn);
     </div>
   </nav>
 
+  <!-- Conteúdo Principal -->
+  <div class="container pt-5 mt-5">
+    <div class="row">
+      <div class="col-12">
+        <h2 class="text-center mb-4">
+          <i class="bi bi-trophy"></i> Painel de Partidas
+        </h2>
+        
+        <!-- Botão para carregar partidas e contador -->
+        <div class="text-center mb-4">
+          <button id="loadMatches" class="btn btn-primary">
+            <i class="bi bi-refresh"></i> Carregar Partidas
+          </button>
+          <div class="mt-2">
+            <small class="text-muted">
+              Próxima atualização em: <span id="countdown">10</span>s
+            </small>
+          </div>
+        </div>
+
+        <!-- Loading spinner -->
+        <div id="loading" class="text-center d-none">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Carregando...</span>
+          </div>
+        </div>
+
+        <!-- Container das partidas -->
+        <div id="matchesContainer" class="row">
+          <!-- As partidas serão carregadas aqui via AJAX -->
+        </div>
+
+        <!-- Mensagem quando não há partidas -->
+        <div id="noMatches" class="alert alert-info text-center d-none">
+          <i class="bi bi-info-circle"></i> Nenhuma partida em andamento no momento.
+        </div>
+      </div>
+    </div>
+  </div>
 
   <?php require_once '../includes/bootstrap_script.php' ?>
   <script src="../assets/js/toast.js"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const loadMatchesBtn = document.getElementById('loadMatches');
+      const loading = document.getElementById('loading');
+      const matchesContainer = document.getElementById('matchesContainer');
+      const noMatches = document.getElementById('noMatches');
+      const countdown = document.getElementById('countdown');
+      
+      let autoUpdateInterval;
+      let countdownInterval;
+      let countdownTime = 10;
+
+      loadMatchesBtn.addEventListener('click', function() {
+        loadMatches();
+        resetAutoUpdate();
+      });
+
+      function loadMatches() {
+        // Mostrar loading
+        loading.classList.remove('d-none');
+        matchesContainer.innerHTML = '';
+        noMatches.classList.add('d-none');
+        loadMatchesBtn.disabled = true;
+
+        // Fazer requisição AJAX
+        fetch('../api/get_matches.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          loading.classList.add('d-none');
+          loadMatchesBtn.disabled = false;
+
+          if (data.error) {
+            console.error('Erro API:', data.error);
+            noMatches.classList.remove('d-none');
+            return;
+          }
+
+          if (data.length === 0) {
+            noMatches.classList.remove('d-none');
+            return;
+          }
+
+          // Renderizar partidas
+          renderMatches(data);
+        })
+        .catch(error => {
+          console.error('Erro:', error);
+          loading.classList.add('d-none');
+          loadMatchesBtn.disabled = false;
+          noMatches.classList.remove('d-none');
+        });
+      }
+
+      function renderMatches(matches) {
+        matchesContainer.innerHTML = '';
+
+        matches.forEach(match => {
+          const statusClass = getStatusClass(match.status);
+          const statusText = getStatusText(match.status);
+
+          const matchCard = `
+            <div class="col-12 mb-4">
+              <div class="card position-relative shadow-sm">
+                <span class="badge ${statusClass} position-absolute top-0 end-0 m-2">${statusText}</span>
+                
+                <div class="card-header bg-light text-center fw-bold">
+                  ${match.name || 'Partida ' + match.id}
+                </div>
+                
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-center" style="width: 40%">
+                      <div class="fw-bold fs-5">${match.team1_name}</div>
+                    </div>
+                    
+                    <div class="text-center">
+                      <span class="fs-4">${match.team1_points || 0}</span>
+                      <span class="fs-4 fw-bold text-secondary mx-2">X</span>
+                      <span class="fs-4">${match.team2_points || 0}</span>
+                    </div>
+                    
+                    <div class="text-center" style="width: 40%">
+                      <div class="fw-bold fs-5">${match.team2_name}</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="card-footer bg-light text-center">
+                  <span class="text-muted">
+                    <i class="bi bi-geo-alt-fill"></i> ${match.location_name}
+                  </span>
+                  <span class="text-muted ms-3">
+                    <i class="bi bi-trophy-fill"></i> ${match.sport_name}
+                  </span>
+                </div>
+              </div>
+            </div>
+          `;
+
+          matchesContainer.innerHTML += matchCard;
+        });
+      }
+
+      function getStatusClass(status) {
+        switch(status) {
+          case 'pending': return 'bg-secondary';
+          case 'in_progress': return 'bg-warning';
+          case 'finished': return 'bg-success';
+          default: return 'bg-secondary';
+        }
+      }
+
+      function getStatusText(status) {
+        switch(status) {
+          case 'pending': return 'Pendente';
+          case 'in_progress': return 'Em Andamento';
+          case 'finished': return 'Finalizado';
+          default: return 'Desconhecido';
+        }
+      }
+
+      function startAutoUpdate() {
+        autoUpdateInterval = setInterval(() => {
+          loadMatches();
+          resetCountdown();
+        }, 10000); // 10 segundos
+      }
+
+      function startCountdown() {
+        countdownInterval = setInterval(() => {
+          countdownTime--;
+          countdown.textContent = countdownTime;
+          
+          if (countdownTime <= 0) {
+            resetCountdown();
+          }
+        }, 1000);
+      }
+
+      function resetCountdown() {
+        countdownTime = 10;
+        countdown.textContent = countdownTime;
+        clearInterval(countdownInterval);
+        startCountdown();
+      }
+
+      function resetAutoUpdate() {
+        clearInterval(autoUpdateInterval);
+        clearInterval(countdownInterval);
+        startAutoUpdate();
+        resetCountdown();
+      }
+
+      // Inicializar
+      loadMatches();
+      startAutoUpdate();
+      startCountdown();
+    });
+  </script>
 </body>
 
 </html>
